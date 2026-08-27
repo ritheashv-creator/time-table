@@ -269,7 +269,7 @@
     if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
     const s = parseTimeToken(parts[0]);
     const e = parseTimeToken(parts[1]);
-    return { startMin: s.h*60+s.m, label: `${fmtTime(s.h,s.m)} – ${fmtTime(e.h,e.m)}` };
+    return { startMin: s.h*60+s.m, label: `${fmtTime(s.h,s.m)}<br>${fmtTime(e.h,e.m)}` };
   }
 
   function findSheet(workbook, keyword){
