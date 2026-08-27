@@ -139,6 +139,19 @@
     border-radius: 4px; cursor:pointer;
   }
   .data-status button:hover{ border-color: var(--chalk-yellow); color: var(--chalk-yellow); }
+
+  @media (max-width: 480px){
+    .wrap{ padding: 28px 16px 56px; }
+    .top-nav{ gap: 6px; }
+    .top-nav a{ padding: 8px 10px; font-size: 11px; }
+    .week-nav{ gap: 6px; }
+    .week-nav button{ padding: 8px 9px; font-size: 11px; flex: 1; }
+    .day-tabs{ flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; margin-left: -2px; margin-right: -2px; }
+    .day-tab{ flex: 0 0 auto; min-width: 40px; }
+    .period{ grid-template-columns: 68px 1fr auto; gap: 10px; padding: 14px 4px; }
+    .period-name{ font-size: 17px; }
+    .data-status{ flex-direction: column; align-items: flex-start; }
+  }
 </style>
 </head>
 <body>
@@ -157,7 +170,7 @@
 
   <div class="week-nav">
     <button id="prevWeekBtn">← Prev week</button>
-    <button id="todayBtn">This week</button>
+    <button id="todayBtn">Today</button>
     <button id="nextWeekBtn">Next week →</button>
   </div>
   <div class="day-tabs" id="dayTabs"></div>

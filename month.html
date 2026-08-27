@@ -82,6 +82,7 @@
     content:''; width: 4px; height: 4px; border-radius: 50%;
     background: var(--chalk-yellow); position: absolute; bottom: 6px;
   }
+  .month-cell.no-class-day{ color: var(--chalk-coral); }
   .month-cell.has-test{ border-color: var(--chalk-coral); }
   .month-cell.has-test::before{
     content:''; width: 4px; height: 4px; border-radius: 50%;
@@ -148,6 +149,19 @@
   }
   .data-status.err{ color: var(--chalk-coral); }
   .data-status button{ font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 7px 12px; }
+
+  @media (max-width: 480px){
+    .wrap{ padding: 28px 16px 56px; }
+    .top-nav{ gap: 6px; }
+    .top-nav a{ padding: 8px 10px; font-size: 11px; }
+    .month-grid{ gap: 3px; }
+    .month-cell{ font-size: 12px; }
+    .month-header{ margin: 28px 0 14px; }
+    .month-nav button{ padding: 7px 9px; font-size: 11px; }
+    .period{ grid-template-columns: 68px 1fr; gap: 10px; padding: 12px 4px; }
+    .period-name{ font-size: 16px; }
+    .data-status{ flex-direction: column; align-items: flex-start; }
+  }
 </style>
 </head>
 <body>
@@ -177,7 +191,7 @@
   <div class="month-grid" id="monthGrid"></div>
   <div class="month-legend">
     <div><span class="dot"></span>days with class · <span class="dot coral"></span>test / exam day</div>
-    <div>dates without a dot are holidays. Tap a date to preview it.</div>
+    <div><span style="color:var(--chalk-coral)">Red dates</span> are holidays — no classes. Tap a date to preview it.</div>
   </div>
 
   <div class="preview" id="preview">
@@ -387,6 +401,7 @@
       const classes = ['month-cell'];
       if (c.outside) classes.push('outside');
       if (hasClass) classes.push('has-class');
+      if (!c.outside && !hasClass) classes.push('no-class-day');
       if (hasTest) classes.push('has-test');
       if (isToday) classes.push('is-today');
       if (isSelected) classes.push('is-selected');

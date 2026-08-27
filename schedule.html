@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Class Schedule</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --chalk-board: #22392f;
+    --chalk-board-dark: #1a2d25;
+    --chalk-cream: #f2ede1;
+    --chalk-yellow: #e7b84f;
+    --chalk-coral: #e2725b;
+    --chalk-teal-line: #3f6355;
+    --chalk-dim: #93a89b;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0;
+    background: var(--chalk-board);
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(255,255,255,0.025) 0, transparent 45%),
+      radial-gradient(circle at 85% 75%, rgba(255,255,255,0.02) 0, transparent 40%);
+    color: var(--chalk-cream);
+    font-family: 'Fraunces', serif;
+    min-height: 100vh;
+  }
+  .wrap{ max-width: 680px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  .top-nav{
+    display:flex; justify-content:flex-end; margin-bottom: 32px;
+  }
+  .top-nav a{
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--chalk-dim); text-decoration:none;
+    border: 1px solid var(--chalk-teal-line); padding: 9px 14px; border-radius: 4px;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .top-nav a:hover{ color: var(--chalk-yellow); border-color: var(--chalk-yellow); }
+
+  .eyebrow{
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--chalk-dim); margin-bottom: 10px;
+  }
+  .today-date{
+    font-size: clamp(28px, 6vw, 42px); font-weight: 700;
+    font-optical-sizing: auto; position: relative; display: inline-block;
+    margin: 0 0 4px; line-height: 1.15;
+  }
+  .today-date .underline{ position:absolute; left: -2px; right: -2px; bottom: -6px; height: 8px; }
+  .today-date .underline svg{ width:100%; height:100%; display:block; }
+  .subline{
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    color: var(--chalk-dim); margin-top: 18px; margin-bottom: 32px;
+  }
+  .now-badge{ color: var(--chalk-yellow); }
+
+  .day-tabs{ display:flex; gap: 6px; margin-bottom: 28px; flex-wrap: wrap; }
+  .day-tab{
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    background: transparent; color: var(--chalk-dim);
+    border: 1px solid var(--chalk-teal-line); padding: 8px 12px;
+    border-radius: 4px; cursor: pointer; transition: all 0.2s; position: relative;
+  }
+  .day-tab:hover{ color: var(--chalk-cream); border-color: var(--chalk-cream); }
+  .day-tab.active{
+    background: var(--chalk-yellow); color: var(--chalk-board-dark);
+    border-color: var(--chalk-yellow); font-weight: 700;
+  }
+  .day-tab.is-today::after{
+    content: ''; position: absolute; top: -4px; right: -4px;
+    width: 6px; height: 6px; border-radius: 50%; background: var(--chalk-coral);
+  }
+  .day-tab.active.is-today::after{ background: var(--chalk-board-dark); }
+  .day-tab.is-holiday{ opacity: 0.45; }
+  .day-tab.is-holiday:not(.active){ text-decoration: line-through; text-decoration-color: var(--chalk-teal-line); }
+
+  .schedule{ border-top: 1px solid var(--chalk-teal-line); }
+  .period{
+    display:grid; grid-template-columns: 88px 1fr auto; gap: 16px;
+    align-items: center; padding: 16px 6px;
+    border-bottom: 1px solid var(--chalk-teal-line); transition: background 0.25s ease;
+  }
+  .period.is-now{
+    background: rgba(231,184,79,0.08); border-left: 3px solid var(--chalk-yellow);
+    padding-left: 15px; margin-left: -3px;
+  }
+  .period-time{
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    color: var(--chalk-dim); white-space: nowrap;
+  }
+  .period.is-now .period-time{ color: var(--chalk-yellow); }
+  .period-name{ font-size: 19px; font-weight: 600; }
+  .period-room{
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: var(--chalk-dim); margin-top: 2px;
+  }
+  .now-tag{
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em;
+    color: var(--chalk-board); background: var(--chalk-yellow); padding: 3px 8px;
+    border-radius: 3px; text-transform: uppercase; white-space: nowrap;
+  }
+  .empty{
+    padding: 40px 6px; text-align:center; color: var(--chalk-dim);
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  }
+
+  .actions{ margin-top: 28px; display:flex; gap: 12px; flex-wrap: wrap; }
+  button{
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.06em;
+    text-transform: uppercase; background: transparent; color: var(--chalk-cream);
+    border: 1px solid var(--chalk-teal-line); padding: 10px 16px; border-radius: 4px;
+    cursor: pointer; transition: border-color 0.2s, color 0.2s;
+  }
+  button:hover{ border-color: var(--chalk-yellow); color: var(--chalk-yellow); }
+  button.primary{
+    background: var(--chalk-yellow); color: var(--chalk-board-dark);
+    border-color: var(--chalk-yellow); font-weight: 700;
+  }
+  button.primary:hover{ opacity:0.9; color: var(--chalk-board-dark); }
+
+  .editor{
+    margin-top: 26px; border-top: 1px dashed var(--chalk-teal-line);
+    padding-top: 22px; display: none;
+  }
+  .editor.open{ display: block; }
+  .editor-title{
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--chalk-dim); margin-bottom: 14px;
+  }
+  .editor-row{
+    display:grid; grid-template-columns: 90px 90px 1fr 90px 32px; gap: 8px;
+    margin-bottom: 10px; align-items:center;
+  }
+  .editor-row input{
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    background: var(--chalk-board-dark); border: 1px solid var(--chalk-teal-line);
+    color: var(--chalk-cream); padding: 8px; border-radius: 4px; width: 100%;
+  }
+  .editor-row input:focus{ outline: none; border-color: var(--chalk-yellow); }
+  .editor-row .remove{
+    background: transparent; border: none; color: var(--chalk-dim);
+    font-size: 18px; cursor: pointer; padding: 0; text-align:center;
+  }
+  .editor-row .remove:hover{ color: var(--chalk-coral); }
+  .editor-labels{
+    display:grid; grid-template-columns: 90px 90px 1fr 90px 32px; gap: 8px;
+    font-family:'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--chalk-dim); margin-bottom: 10px;
+  }
+  .save-note{
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--chalk-dim); margin-top: 6px; min-height: 14px;
+  }
+
+  .excel-panel{
+    margin-top: 40px; border-top: 1px solid var(--chalk-teal-line); padding-top: 22px;
+  }
+  .excel-title{
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--chalk-dim); margin-bottom: 10px;
+  }
+  .excel-hint{
+    font-size: 14px; color: var(--chalk-dim); line-height: 1.5; margin-bottom: 16px;
+    max-width: 54ch;
+  }
+  .excel-hint code{
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    background: var(--chalk-board-dark); padding: 1px 5px; border-radius: 3px;
+  }
+  .file-btn{ position: relative; overflow: hidden; display: inline-flex; }
+  .file-btn input[type="file"]{
+    position:absolute; inset:0; opacity:0; cursor:pointer; width:100%;
+  }
+  .excel-status{
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    margin-top: 12px; min-height: 16px;
+  }
+  .excel-status.ok{ color: var(--chalk-yellow); }
+  .excel-status.err{ color: var(--chalk-coral); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top-nav"><a href="month.html">View month →</a></div>
+
+  <div class="eyebrow" id="dayLabel">Loading —</div>
+  <h1 class="today-date">
+    <span id="dateLabel">—</span>
+    <span class="underline"><svg viewBox="0 0 300 8" preserveAspectRatio="none"><path d="M2,5 C60,2 120,7 180,3 C220,1 260,6 298,4" stroke="#e7b84f" stroke-width="3" fill="none" stroke-linecap="round"/></svg></span>
+  </h1>
+  <div class="subline" id="nowLabel">reading the clock…</div>
+
+  <div class="day-tabs" id="dayTabs"></div>
+
+  <div class="schedule" id="scheduleList">
+    <div class="empty">Loading your schedule…</div>
+  </div>
+
+  <div class="actions">
+    <button id="editBtn">Edit this day</button>
+    <button id="resetBtn" title="Restore the default example week">Reset to example</button>
+  </div>
+
+  <div class="editor" id="editor">
+    <div class="editor-title" id="editorTitle">Editing —</div>
+    <div class="editor-labels">
+      <span>Start</span><span>End</span><span>Class</span><span>Room</span><span></span>
+    </div>
+    <div id="editorRows"></div>
+    <div class="actions" style="margin-top:6px;">
+      <button id="addRowBtn">+ Add period</button>
+      <button class="primary" id="saveBtn">Save this day</button>
+    </div>
+    <div class="save-note" id="saveNote"></div>
+  </div>
+
+  <div class="excel-panel">
+    <div class="excel-title">Load from Excel</div>
+    <div class="excel-hint">
+      Columns: <code>Day</code> (Mon–Sun), <code>Start</code> and <code>End</code> (24-hour, e.g. <code>08:00</code>), <code>Class</code>, <code>Room</code>. One row per period. Re-select the file any time you edit it in Excel to refresh the site.
+    </div>
+    <div class="actions">
+      <div class="file-btn">
+        <button type="button">Choose Excel file</button>
+        <input type="file" id="excelInput" accept=".xlsx,.xls">
+      </div>
+      <button id="templateBtn">Download template</button>
+    </div>
+    <div class="excel-status" id="excelStatus"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const DAY_KEYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const DAY_FULL = { Sun:'Sunday', Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday', Sat:'Saturday' };
+
+  const DEFAULT_WEEK = {
+    Sun: [],
+    Mon: [
+      { start: "08:00", end: "08:50", name: "Homeroom", room: "Rm 214" },
+      { start: "09:00", end: "09:50", name: "Mathematics", room: "Rm 118" },
+      { start: "10:00", end: "10:50", name: "English", room: "Rm 209" },
+      { start: "11:00", end: "11:50", name: "Science", room: "Lab 3" },
+      { start: "12:50", end: "13:40", name: "Social Studies", room: "Rm 105" },
+      { start: "13:50", end: "14:40", name: "Physical Education", room: "Gym" }
+    ],
+    Tue: [
+      { start: "08:00", end: "08:50", name: "Homeroom", room: "Rm 214" },
+      { start: "09:00", end: "09:50", name: "Science", room: "Lab 3" },
+      { start: "10:00", end: "10:50", name: "Mathematics", room: "Rm 118" },
+      { start: "11:00", end: "11:50", name: "Art", room: "Rm 302" }
+    ],
+    Wed: [
+      { start: "08:00", end: "08:50", name: "Homeroom", room: "Rm 214" },
+      { start: "09:00", end: "09:50", name: "Mathematics", room: "Rm 118" },
+      { start: "10:00", end: "10:50", name: "English", room: "Rm 209" },
+      { start: "11:00", end: "11:50", name: "Science", room: "Lab 3" }
+    ],
+    Thu: [
+      { start: "08:00", end: "08:50", name: "Homeroom", room: "Rm 214" },
+      { start: "09:00", end: "09:50", name: "Music", room: "Rm 401" },
+      { start: "10:00", end: "10:50", name: "Mathematics", room: "Rm 118" },
+      { start: "11:00", end: "11:50", name: "Social Studies", room: "Rm 105" }
+    ],
+    Fri: [
+      { start: "08:00", end: "08:50", name: "Homeroom", room: "Rm 214" },
+      { start: "09:00", end: "09:50", name: "English", room: "Rm 209" },
+      { start: "10:00", end: "10:50", name: "Science", room: "Lab 3" },
+      { start: "11:00", end: "11:50", name: "Physical Education", room: "Gym" }
+    ],
+    Sat: []
+  };
+
+  const STORAGE_KEY = "todays-class:week-schedule";
+  const todayIdx = new Date().getDay();
+  const todayKey = DAY_KEYS[todayIdx];
+
+  // allow deep-linking from the month page: schedule.html?day=Wed
+  const urlParams = new URLSearchParams(window.location.search);
+  const dayParam = urlParams.get('day');
+  let selectedDay = (dayParam && DAY_KEYS.includes(dayParam)) ? dayParam : todayKey;
+
+  let week = null;
+
+  const el = {
+    dayLabel: document.getElementById('dayLabel'),
+    dateLabel: document.getElementById('dateLabel'),
+    nowLabel: document.getElementById('nowLabel'),
+    dayTabs: document.getElementById('dayTabs'),
+    scheduleList: document.getElementById('scheduleList'),
+    editBtn: document.getElementById('editBtn'),
+    resetBtn: document.getElementById('resetBtn'),
+    editor: document.getElementById('editor'),
+    editorTitle: document.getElementById('editorTitle'),
+    editorRows: document.getElementById('editorRows'),
+    addRowBtn: document.getElementById('addRowBtn'),
+    saveBtn: document.getElementById('saveBtn'),
+    saveNote: document.getElementById('saveNote'),
+    excelInput: document.getElementById('excelInput'),
+    templateBtn: document.getElementById('templateBtn'),
+    excelStatus: document.getElementById('excelStatus'),
+  };
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function nowMinutes(){ const d = new Date(); return d.getHours()*60 + d.getMinutes(); }
+  function toMinutes(hhmm){ const [h,m] = hhmm.split(':').map(Number); return (h||0)*60 + (m||0); }
+  function fmtTime(hhmm){
+    const [h,m] = hhmm.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    let h12 = h % 12; if (h12 === 0) h12 = 12;
+    return `${h12}:${pad(m)} ${ampm}`;
+  }
+  function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+  function escapeAttr(str){ return String(str).replace(/"/g, '&quot;'); }
+
+  function renderHeader(){
+    const d = new Date();
+    el.dayLabel.textContent = d.toLocaleDateString(undefined, { weekday: 'long' }) + ' —';
+    el.dateLabel.textContent = d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+  }
+
+  function renderDayTabs(){
+    el.dayTabs.innerHTML = DAY_KEYS.map(k => {
+      const active = k === selectedDay ? 'active' : '';
+      const isToday = k === todayKey ? 'is-today' : '';
+      const isHoliday = !week[k] || week[k].length === 0;
+      const holidayClass = isHoliday ? 'is-holiday' : '';
+      const title = isHoliday ? ` title="Holiday — no classes"` : '';
+      return `<button class="day-tab ${active} ${isToday} ${holidayClass}" data-day="${k}"${title}>${k}</button>`;
+    }).join('');
+    el.dayTabs.querySelectorAll('.day-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedDay = btn.dataset.day;
+        el.editor.classList.remove('open');
+        el.editBtn.textContent = 'Edit this day';
+        renderDayTabs();
+        renderSchedule();
+        renderEditorRows();
+      });
+    });
+  }
+
+  function renderSchedule(){
+    const periods = (week[selectedDay] || []).slice().sort((a,b) => toMinutes(a.start) - toMinutes(b.start));
+    const isViewingToday = selectedDay === todayKey;
+
+    if (periods.length === 0){
+      el.scheduleList.innerHTML = `<div class="empty">Holiday — no classes on ${DAY_FULL[selectedDay]}. Tap "Edit this day" if that's wrong.</div>`;
+      el.nowLabel.textContent = isViewingToday ? "it's a holiday — no classes today" : `${DAY_FULL[selectedDay]} is a holiday`;
+      return;
+    }
+
+    let activeIdx = -1;
+    if (isViewingToday){
+      const nm = nowMinutes();
+      periods.forEach((p, i) => {
+        if (nm >= toMinutes(p.start) && nm < toMinutes(p.end)) activeIdx = i;
+      });
+    }
+
+    el.scheduleList.innerHTML = periods.map((p, i) => {
+      const isNow = i === activeIdx;
+      return `
+        <div class="period ${isNow ? 'is-now' : ''}">
+          <div class="period-time">${fmtTime(p.start)}<br>${fmtTime(p.end)}</div>
+          <div>
+            <div class="period-name">${escapeHtml(p.name || 'Untitled')}</div>
+            ${p.room ? `<div class="period-room">${escapeHtml(p.room)}</div>` : ''}
+          </div>
+          <div>${isNow ? '<span class="now-tag">Now</span>' : ''}</div>
+        </div>
+      `;
+    }).join('');
+
+    if (isViewingToday){
+      if (activeIdx !== -1){
+        el.nowLabel.innerHTML = `<span class="now-badge">In class:</span> ${escapeHtml(periods[activeIdx].name)} until ${fmtTime(periods[activeIdx].end)}`;
+      } else {
+        const nm = nowMinutes();
+        const upcoming = periods.find(p => toMinutes(p.start) > nm);
+        el.nowLabel.textContent = upcoming ? `next up: ${upcoming.name} at ${fmtTime(upcoming.start)}` : 'no more classes today';
+      }
+    } else {
+      el.nowLabel.textContent = `viewing ${DAY_FULL[selectedDay]}`;
+    }
+  }
+
+  function renderEditorRows(){
+    const periods = week[selectedDay] || [];
+    el.editorTitle.textContent = `Editing ${DAY_FULL[selectedDay]}`;
+    el.editorRows.innerHTML = periods.map((p, i) => `
+      <div class="editor-row" data-idx="${i}">
+        <input type="time" class="f-start" value="${p.start}">
+        <input type="time" class="f-end" value="${p.end}">
+        <input type="text" class="f-name" placeholder="Class name" value="${escapeAttr(p.name)}">
+        <input type="text" class="f-room" placeholder="Room" value="${escapeAttr(p.room||'')}">
+        <button class="remove" title="Remove">×</button>
+      </div>
+    `).join('');
+    el.editorRows.querySelectorAll('.remove').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = Number(e.target.closest('.editor-row').dataset.idx);
+        week[selectedDay].splice(idx, 1);
+        renderEditorRows();
+      });
+    });
+  }
+
+  function collectEditorRows(){
+    const rows = el.editorRows.querySelectorAll('.editor-row');
+    const out = [];
+    rows.forEach(row => {
+      const start = row.querySelector('.f-start').value || '00:00';
+      const end = row.querySelector('.f-end').value || '00:00';
+      const name = row.querySelector('.f-name').value.trim();
+      const room = row.querySelector('.f-room').value.trim();
+      if (name) out.push({ start, end, name, room });
+    });
+    out.sort((a,b) => toMinutes(a.start) - toMinutes(b.start));
+    return out;
+  }
+
+  const DAY_ALIASES = {
+    sun:'Sun', sunday:'Sun',
+    mon:'Mon', monday:'Mon',
+    tue:'Tue', tues:'Tue', tuesday:'Tue',
+    wed:'Wed', weds:'Wed', wednesday:'Wed',
+    thu:'Thu', thur:'Thu', thurs:'Thu', thursday:'Thu',
+    fri:'Fri', friday:'Fri',
+    sat:'Sat', saturday:'Sat'
+  };
+
+  function normalizeDay(raw){
+    const key = String(raw || '').trim().toLowerCase();
+    return DAY_ALIASES[key] || null;
+  }
+
+  function normalizeTime(raw){
+    if (raw === null || raw === undefined || raw === '') return null;
+    // Excel serial time: fraction of a day (or datetime with fractional part)
+    if (typeof raw === 'number'){
+      const frac = raw - Math.floor(raw);
+      const totalMin = Math.round(frac * 24 * 60);
+      const h = Math.floor(totalMin / 60), m = totalMin % 60;
+      return `${pad(h)}:${pad(m)}`;
+    }
+    const str = String(raw).trim();
+    // already HH:MM or H:MM (24h)
+    let m24 = str.match(/^(\d{1,2}):(\d{2})$/);
+    if (m24){
+      return `${pad(Number(m24[1]))}:${pad(Number(m24[2]))}`;
+    }
+    // 12-hour with AM/PM, e.g. "8:00 AM"
+    let m12 = str.match(/^(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)$/);
+    if (m12){
+      let h = Number(m12[1]) % 12;
+      if (/pm/i.test(m12[3])) h += 12;
+      return `${pad(h)}:${pad(Number(m12[2]))}`;
+    }
+    return null;
+  }
+
+  function findKey(row, candidates){
+    const keys = Object.keys(row);
+    for (const c of candidates){
+      const found = keys.find(k => k.trim().toLowerCase() === c);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  function parseWorkbookToWeek(workbook){
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    if (rows.length === 0) throw new Error('The first sheet has no rows.');
+
+    const dayKey = findKey(rows[0], ['day']);
+    const startKey = findKey(rows[0], ['start', 'start time']);
+    const endKey = findKey(rows[0], ['end', 'end time']);
+    const nameKey = findKey(rows[0], ['class', 'subject', 'name']);
+    const roomKey = findKey(rows[0], ['room', 'location']);
+    if (!dayKey || !startKey || !endKey || !nameKey){
+      throw new Error('Expected columns: Day, Start, End, Class, (Room).');
+    }
+
+    const newWeek = { Sun:[], Mon:[], Tue:[], Wed:[], Thu:[], Fri:[], Sat:[] };
+    let skipped = 0;
+
+    rows.forEach(row => {
+      const dk = normalizeDay(row[dayKey]);
+      const start = normalizeTime(row[startKey]);
+      const end = normalizeTime(row[endKey]);
+      const name = String(row[nameKey] || '').trim();
+      const room = roomKey ? String(row[roomKey] || '').trim() : '';
+      if (!dk || !start || !end || !name){ skipped++; return; }
+      newWeek[dk].push({ start, end, name, room });
+    });
+
+    DAY_KEYS.forEach(k => {
+      newWeek[k].sort((a,b) => toMinutes(a.start) - toMinutes(b.start));
+    });
+
+    return { newWeek, skipped, totalRows: rows.length };
+  }
+
+  el.excelInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    el.excelStatus.className = 'excel-status';
+    el.excelStatus.textContent = 'Reading file…';
+    try{
+      const buf = await file.arrayBuffer();
+      const workbook = XLSX.read(buf, { type: 'array', cellDates: false });
+      const { newWeek, skipped, totalRows } = parseWorkbookToWeek(workbook);
+      week = newWeek;
+      await saveWeek();
+      renderDayTabs();
+      renderSchedule();
+      renderEditorRows();
+      const loadedCount = totalRows - skipped;
+      el.excelStatus.className = 'excel-status ok';
+      el.excelStatus.textContent = skipped > 0
+        ? `Loaded ${loadedCount} periods (skipped ${skipped} row${skipped === 1 ? '' : 's'} that didn't match the expected columns).`
+        : `Loaded ${loadedCount} periods from "${file.name}".`;
+    } catch(err){
+      el.excelStatus.className = 'excel-status err';
+      el.excelStatus.textContent = `Couldn't read that file: ${err.message}`;
+    }
+    e.target.value = '';
+  });
+
+  el.templateBtn.addEventListener('click', () => {
+    const sample = [
+      { Day: 'Mon', Start: '08:00', End: '08:50', Class: 'Homeroom', Room: 'Rm 214' },
+      { Day: 'Mon', Start: '09:00', End: '09:50', Class: 'Mathematics', Room: 'Rm 118' },
+      { Day: 'Tue', Start: '08:00', End: '08:50', Class: 'Homeroom', Room: 'Rm 214' },
+      { Day: 'Tue', Start: '09:00', End: '09:50', Class: 'Science', Room: 'Lab 3' },
+    ];
+    const ws = XLSX.utils.json_to_sheet(sample);
+    ws['!cols'] = [{wch:6},{wch:8},{wch:8},{wch:20},{wch:12}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Schedule');
+    XLSX.writeFile(wb, 'class-schedule-template.xlsx');
+  });
+
+  el.editBtn.addEventListener('click', () => {
+    const opening = !el.editor.classList.contains('open');
+    el.editor.classList.toggle('open');
+    el.editBtn.textContent = el.editor.classList.contains('open') ? 'Close editor' : 'Edit this day';
+    if (opening) renderEditorRows();
+  });
+
+  el.addRowBtn.addEventListener('click', () => {
+    if (!week[selectedDay]) week[selectedDay] = [];
+    week[selectedDay].push({ start: '09:00', end: '09:50', name: '', room: '' });
+    renderEditorRows();
+  });
+
+  el.saveBtn.addEventListener('click', async () => {
+    week[selectedDay] = collectEditorRows();
+    await saveWeek();
+    renderSchedule();
+  });
+
+  el.resetBtn.addEventListener('click', async () => {
+    if (confirm('Restore the example week? This replaces your entire schedule.')){
+      week = JSON.parse(JSON.stringify(DEFAULT_WEEK));
+      await saveWeek();
+      renderSchedule();
+      renderEditorRows();
+    }
+  });
+
+  async function saveWeek(){
+    try{
+      const result = await window.storage.set(STORAGE_KEY, JSON.stringify(week), false);
+      if (!result) throw new Error('no result');
+      el.saveNote.textContent = 'Saved ✓';
+    } catch(err){
+      el.saveNote.textContent = 'Could not save — changes will be lost on reload.';
+    }
+    setTimeout(() => { el.saveNote.textContent = ''; }, 2500);
+  }
+
+  async function loadWeek(){
+    try{
+      const result = await window.storage.get(STORAGE_KEY, false);
+      if (result && result.value){
+        const parsed = JSON.parse(result.value);
+        if (Array.isArray(parsed)){
+          week = JSON.parse(JSON.stringify(DEFAULT_WEEK));
+          week[todayKey] = parsed;
+        } else {
+          week = parsed;
+          DAY_KEYS.forEach(k => { if (!week[k]) week[k] = []; });
+        }
+      } else {
+        week = JSON.parse(JSON.stringify(DEFAULT_WEEK));
+      }
+    } catch(err){
+      week = JSON.parse(JSON.stringify(DEFAULT_WEEK));
+    }
+  }
+
+  async function init(){
+    renderHeader();
+    await loadWeek();
+    renderDayTabs();
+    renderSchedule();
+    renderEditorRows();
+    setInterval(() => { renderHeader(); renderSchedule(); }, 30000);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
