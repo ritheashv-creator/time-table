@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upcoming — Class Schedule</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --chalk-board: #22392f;
+    --chalk-board-dark: #1a2d25;
+    --chalk-cream: #f2ede1;
+    --chalk-yellow: #e7b84f;
+    --chalk-coral: #e2725b;
+    --chalk-teal-line: #3f6355;
+    --chalk-dim: #93a89b;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0;
+    background: var(--chalk-board);
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(255,255,255,0.025) 0, transparent 45%),
+      radial-gradient(circle at 85% 75%, rgba(255,255,255,0.02) 0, transparent 40%);
+    color: var(--chalk-cream);
+    font-family: 'Fraunces', serif;
+    min-height: 100vh;
+  }
+  .wrap{ max-width: 680px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  .top-nav{ display:flex; justify-content:space-between; margin-bottom: 32px; gap: 8px; flex-wrap: wrap; }
+  .top-nav .links{ display:flex; gap: 6px; }
+  .top-nav a{
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--chalk-dim); text-decoration:none;
+    border: 1px solid var(--chalk-teal-line); padding: 9px 14px; border-radius: 4px;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .top-nav a:hover{ color: var(--chalk-yellow); border-color: var(--chalk-yellow); }
+  .top-nav a.active{ color: var(--chalk-yellow); border-color: var(--chalk-yellow); }
+
+  .eyebrow{
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--chalk-dim); margin-bottom: 10px;
+  }
+  .page-title{
+    font-size: clamp(28px, 6vw, 42px); font-weight: 700;
+    font-optical-sizing: auto; position: relative; display: inline-block;
+    margin: 0 0 4px; line-height: 1.15;
+  }
+  .page-title .underline{ position:absolute; left: -2px; right: -2px; bottom: -6px; height: 8px; }
+  .page-title .underline svg{ width:100%; height:100%; display:block; }
+  .subline{
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    color: var(--chalk-dim); margin-top: 18px; margin-bottom: 32px;
+  }
+
+  .section-title{
+    font-size: 19px; font-weight: 600; margin: 36px 0 14px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .section-title .count{
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--chalk-dim);
+    border: 1px solid var(--chalk-teal-line); border-radius: 20px; padding: 3px 10px;
+  }
+
+  .event-card{
+    display:grid; grid-template-columns: 64px 1fr auto; gap: 16px;
+    align-items:center; padding: 16px 14px; margin-bottom: 8px;
+    border: 1px solid var(--chalk-teal-line); border-radius: 8px;
+    background: rgba(255,255,255,0.015); transition: border-color 0.2s;
+  }
+  .event-card:hover{ border-color: var(--chalk-dim); }
+  .event-card.is-urgent{ border-color: var(--chalk-coral); background: rgba(226,114,91,0.06); }
+  .event-card.is-past{ opacity: 0.55; }
+  .event-date{ text-align:center; }
+  .event-date .num{ font-size: 24px; font-weight: 700; line-height: 1; }
+  .event-date .mon{
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase;
+    color: var(--chalk-dim); letter-spacing: 0.06em; margin-top: 2px;
+  }
+  .event-body .event-name{ font-size: 17px; font-weight: 600; margin-bottom: 3px; }
+  .event-body .event-meta{
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--chalk-dim);
+  }
+  .event-tag{
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 4px 9px; border-radius: 20px; white-space: nowrap;
+    text-align:center; height: fit-content;
+  }
+  .event-tag.test{ background: rgba(231,184,79,0.15); color: var(--chalk-yellow); }
+  .event-tag.submission{ background: rgba(226,114,91,0.15); color: var(--chalk-coral); }
+  .event-countdown{
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--chalk-dim);
+    text-align:center; margin-top: 4px;
+  }
+  .event-card.is-urgent .event-countdown{ color: var(--chalk-coral); }
+
+  .empty{
+    padding: 28px 14px; color: var(--chalk-dim);
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    border: 1px dashed var(--chalk-teal-line); border-radius: 8px; text-align:center;
+  }
+
+  .data-status{
+    margin-top: 44px; border-top: 1px solid var(--chalk-teal-line); padding-top: 16px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--chalk-dim);
+    display:flex; align-items:center; justify-content:space-between; gap: 10px; flex-wrap:wrap;
+  }
+  .data-status.err{ color: var(--chalk-coral); }
+  .data-status button{
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent;
+    color: var(--chalk-cream); border: 1px solid var(--chalk-teal-line); padding: 7px 12px;
+    border-radius: 4px; cursor:pointer;
+  }
+  .data-status button:hover{ border-color: var(--chalk-yellow); color: var(--chalk-yellow); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top-nav">
+    <div class="links">
+      <a href="index.html">Home</a>
+      <a href="upcoming.html" class="active">Upcoming</a>
+      <a href="month.html">Month</a>
+    </div>
+  </div>
+
+  <div class="eyebrow">Tests & assignments</div>
+  <h1 class="page-title">
+    <span>Coming up</span>
+    <span class="underline"><svg viewBox="0 0 300 8" preserveAspectRatio="none"><path d="M2,5 C60,2 120,7 180,3 C220,1 260,6 298,4" stroke="#e7b84f" stroke-width="3" fill="none" stroke-linecap="round"/></svg></span>
+  </h1>
+  <div class="subline" id="todayLine">—</div>
+
+  <div class="section-title">
+    <span>Due soon</span>
+    <span class="count" id="soonCount">0</span>
+  </div>
+  <div id="soonList"></div>
+
+  <div class="section-title">
+    <span>Recently over</span>
+    <span class="count" id="pastCount">0</span>
+  </div>
+  <div id="pastList"></div>
+
+  <div class="section-title">
+    <span>Further ahead</span>
+    <span class="count" id="laterCount">0</span>
+  </div>
+  <div id="laterList"></div>
+
+  <div class="data-status" id="dataStatus">
+    <span id="dataStatusText">Loading class-data.xlsx…</span>
+    <button id="refreshBtn">↻ Refresh</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const XLSX_PATH = './class-data.xlsx';
+  const STORAGE_CACHE = 'todays-class:data-cache-v2';
+  const TEST_PATTERN = /test|exam|sed|quiz|viva/i;
+  const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+  // Visibility window: from 7 days before an event's date, through 5 days after.
+  const DAYS_BEFORE = 7;
+  const DAYS_AFTER = 5;
+
+  let classRows = [];
+  let subRows = [];
+
+  const el = {
+    todayLine: document.getElementById('todayLine'),
+    soonList: document.getElementById('soonList'),
+    soonCount: document.getElementById('soonCount'),
+    pastList: document.getElementById('pastList'),
+    pastCount: document.getElementById('pastCount'),
+    laterList: document.getElementById('laterList'),
+    laterCount: document.getElementById('laterCount'),
+    dataStatus: document.getElementById('dataStatus'),
+    dataStatusText: document.getElementById('dataStatusText'),
+    refreshBtn: document.getElementById('refreshBtn'),
+  };
+
+  function startOfDay(d){ const c = new Date(d); c.setHours(0,0,0,0); return c; }
+  function daysBetween(a, b){ return Math.round((startOfDay(b) - startOfDay(a)) / 86400000); }
+
+  function excelDateToJS(v){
+    if (v instanceof Date) return v;
+    if (typeof v === 'number'){
+      const parsed = XLSX.SSF.parse_date_code(v);
+      if (parsed) return new Date(parsed.y, parsed.m - 1, parsed.d);
+    }
+    if (typeof v === 'string'){
+      const d = new Date(v);
+      if (!isNaN(d)) return d;
+    }
+    return null;
+  }
+
+  function findSheet(workbook, keyword){
+    const name = workbook.SheetNames.find(n => n.toLowerCase().includes(keyword));
+    return name ? workbook.Sheets[name] : null;
+  }
+
+  function parseWorkbook(workbook){
+    const rows1 = [];
+    const ttSheet = findSheet(workbook, 'time') || workbook.Sheets[workbook.SheetNames[0]];
+    if (ttSheet){
+      XLSX.utils.sheet_to_json(ttSheet, { defval: '' }).forEach(r => {
+        const date = excelDateToJS(r['Date']);
+        if (!date) return;
+        const course = String(r['Course'] ?? '').trim();
+        if (!course || course === '--') return;
+        rows1.push({
+          date, course,
+          hall: r['Hall No.'] !== undefined ? String(r['Hall No.']).trim() : ''
+        });
+      });
+    }
+    const rows2 = [];
+    const subSheet = findSheet(workbook, 'submission');
+    if (subSheet){
+      XLSX.utils.sheet_to_json(subSheet, { defval: '' }).forEach(r => {
+        const date = excelDateToJS(r['Date']);
+        if (!date) return;
+        const aKey = Object.keys(r).find(k => k.toLowerCase().includes('assignment'));
+        rows2.push({
+          date,
+          course: String(r['Course'] ?? '').trim(),
+          faculty: String(r['Faculty'] ?? '').trim(),
+          assignment: aKey ? String(r[aKey] ?? '').trim() : ''
+        });
+      });
+    }
+    return { classRows: rows1, subRows: rows2 };
+  }
+
+  async function cacheData(data){
+    try{
+      await window.storage.set(STORAGE_CACHE, JSON.stringify({
+        classRows: data.classRows.map(r => ({...r, date: r.date.toISOString()})),
+        subRows: data.subRows.map(r => ({...r, date: r.date.toISOString()}))
+      }), false);
+    } catch(err){ /* non-fatal */ }
+  }
+  async function loadCachedData(){
+    try{
+      const res = await window.storage.get(STORAGE_CACHE, false);
+      if (!res || !res.value) return null;
+      const parsed = JSON.parse(res.value);
+      return {
+        classRows: parsed.classRows.map(r => ({...r, date: new Date(r.date)})),
+        subRows: parsed.subRows.map(r => ({...r, date: new Date(r.date)}))
+      };
+    } catch(err){ return null; }
+  }
+
+  async function loadData(showStatus){
+    if (showStatus){ el.dataStatusText.textContent = 'Fetching class-data.xlsx…'; el.dataStatus.className = 'data-status'; }
+    try{
+      const resp = await fetch(XLSX_PATH, { cache: 'no-store' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const buf = await resp.arrayBuffer();
+      const workbook = XLSX.read(buf, { type: 'array', cellDates: false });
+      const data = parseWorkbook(workbook);
+      classRows = data.classRows;
+      subRows = data.subRows;
+      await cacheData(data);
+      el.dataStatusText.textContent = `Loaded ${classRows.length} periods, ${subRows.length} submissions — ${new Date().toLocaleTimeString()}`;
+      el.dataStatus.className = 'data-status';
+      return true;
+    } catch(err){
+      const cached = await loadCachedData();
+      if (cached){
+        classRows = cached.classRows;
+        subRows = cached.subRows;
+        el.dataStatusText.textContent = `Couldn't reach class-data.xlsx — showing last saved copy.`;
+        el.dataStatus.className = 'data-status err';
+        return true;
+      }
+      el.dataStatusText.textContent = `Couldn't load class-data.xlsx. Make sure it sits in the same folder as this page.`;
+      el.dataStatus.className = 'data-status err';
+      return false;
+    }
+  }
+
+  function buildEvents(){
+    const testMap = new Map();
+    classRows.forEach(r => {
+      if (!TEST_PATTERN.test(r.course)) return;
+      const key = startOfDay(r.date).getTime() + '|' + r.course;
+      if (!testMap.has(key)){
+        testMap.set(key, { date: r.date, title: r.course, type: 'test', meta: r.hall ? `Hall ${r.hall}` : '' });
+      }
+    });
+    const submissionEvents = subRows.map(r => ({
+      date: r.date,
+      title: r.assignment ? r.assignment : (r.course || 'Submission'),
+      type: 'submission',
+      meta: [r.course, r.faculty].filter(Boolean).join(' · ')
+    }));
+    const all = [...testMap.values(), ...submissionEvents];
+    all.sort((a,b) => a.date - b.date);
+    return all;
+  }
+
+  function countdownLabel(days){
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Tomorrow';
+    if (days === -1) return 'Yesterday';
+    if (days > 0) return `In ${days} days`;
+    return `${Math.abs(days)} days ago`;
+  }
+
+  function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+  function renderCard(evt, today){
+    const days = daysBetween(today, evt.date);
+    const urgent = days >= 0 && days <= 2;
+    const isPast = days < 0;
+    const day = evt.date.getDate();
+    const mon = MONTHS[evt.date.getMonth()];
+    const tagLabel = evt.type === 'test' ? 'Test' : 'Submission';
+    const div = document.createElement('div');
+    div.className = 'event-card' + (urgent ? ' is-urgent' : '') + (isPast ? ' is-past' : '');
+    div.innerHTML = `
+      <div class="event-date"><div class="num">${day}</div><div class="mon">${mon}</div></div>
+      <div class="event-body">
+        <div class="event-name">${escapeHtml(evt.title)}</div>
+        <div class="event-meta">${escapeHtml(evt.meta || '')}</div>
+      </div>
+      <div>
+        <div class="event-tag ${evt.type}">${tagLabel}</div>
+        <div class="event-countdown">${countdownLabel(days)}</div>
+      </div>
+    `;
+    return div;
+  }
+
+  function render(){
+    const today = startOfDay(new Date());
+    el.todayLine.textContent = new Date().toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+
+    const events = buildEvents();
+    const soon = events.filter(e => { const d = daysBetween(today, e.date); return d >= 0 && d <= DAYS_BEFORE; });
+    const past = events.filter(e => { const d = daysBetween(today, e.date); return d < 0 && d >= -DAYS_AFTER; });
+    const later = events.filter(e => daysBetween(today, e.date) > DAYS_BEFORE);
+
+    el.soonCount.textContent = soon.length;
+    el.pastCount.textContent = past.length;
+    el.laterCount.textContent = later.length;
+
+    el.soonList.innerHTML = '';
+    if (soon.length === 0) el.soonList.innerHTML = '<div class="empty">Nothing due in the next 7 days.</div>';
+    else soon.forEach(evt => el.soonList.appendChild(renderCard(evt, today)));
+
+    el.pastList.innerHTML = '';
+    if (past.length === 0) el.pastList.innerHTML = '<div class="empty">Nothing finished in the last 5 days.</div>';
+    else past.sort((a,b)=>b.date-a.date).forEach(evt => el.pastList.appendChild(renderCard(evt, today)));
+
+    el.laterList.innerHTML = '';
+    if (later.length === 0) el.laterList.innerHTML = '<div class="empty">Nothing else on the horizon yet.</div>';
+    else later.forEach(evt => el.laterList.appendChild(renderCard(evt, today)));
+  }
+
+  el.refreshBtn.addEventListener('click', async () => {
+    await loadData(true);
+    render();
+  });
+
+  async function init(){
+    const cached = await loadCachedData();
+    if (cached){ classRows = cached.classRows; subRows = cached.subRows; render(); }
+    await loadData(false);
+    render();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

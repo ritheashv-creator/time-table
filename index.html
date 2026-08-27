@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Today — Class Schedule</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --chalk-board: #22392f;
+    --chalk-board-dark: #1a2d25;
+    --chalk-cream: #f2ede1;
+    --chalk-yellow: #e7b84f;
+    --chalk-coral: #e2725b;
+    --chalk-teal-line: #3f6355;
+    --chalk-dim: #93a89b;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0;
+    background: var(--chalk-board);
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(255,255,255,0.025) 0, transparent 45%),
+      radial-gradient(circle at 85% 75%, rgba(255,255,255,0.02) 0, transparent 40%);
+    color: var(--chalk-cream);
+    font-family: 'Fraunces', serif;
+    min-height: 100vh;
+  }
+  .wrap{ max-width: 680px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  .top-nav{ display:flex; justify-content:space-between; margin-bottom: 32px; gap: 8px; flex-wrap: wrap; }
+  .top-nav .links{ display:flex; gap: 6px; }
+  .top-nav a{
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--chalk-dim); text-decoration:none;
+    border: 1px solid var(--chalk-teal-line); padding: 9px 14px; border-radius: 4px;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .top-nav a:hover{ color: var(--chalk-yellow); border-color: var(--chalk-yellow); }
+  .top-nav a.active{ color: var(--chalk-yellow); border-color: var(--chalk-yellow); }
+
+  .eyebrow{
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--chalk-dim); margin-bottom: 10px;
+  }
+  .today-date{
+    font-size: clamp(28px, 6vw, 42px); font-weight: 700;
+    font-optical-sizing: auto; position: relative; display: inline-block;
+    margin: 0 0 4px; line-height: 1.15;
+  }
+  .subline{
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    color: var(--chalk-dim); margin-top: 18px; margin-bottom: 32px;
+  }
+  .now-badge{ color: var(--chalk-yellow); }
+
+  .week-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 14px; }
+  .week-nav button{
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.06em;
+    text-transform: uppercase; background: transparent; color: var(--chalk-cream);
+    border: 1px solid var(--chalk-teal-line); padding: 8px 12px; border-radius: 4px;
+    cursor: pointer; transition: border-color 0.2s, color 0.2s;
+  }
+  .week-nav button:hover{ border-color: var(--chalk-yellow); color: var(--chalk-yellow); }
+
+  .day-tabs{ display:flex; gap: 6px; margin-bottom: 28px; flex-wrap: wrap; }
+  .day-tab{
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    background: transparent; color: var(--chalk-dim);
+    border: 1px solid var(--chalk-teal-line); padding: 8px 10px;
+    border-radius: 4px; cursor: pointer; transition: all 0.2s; position: relative;
+    text-align:center; line-height:1.4;
+  }
+  .day-tab .dn{ display:block; font-size: 13px; font-weight:700; }
+  .day-tab:hover{ color: var(--chalk-cream); border-color: var(--chalk-cream); }
+  .day-tab.active{
+    background: var(--chalk-yellow); color: var(--chalk-board-dark);
+    border-color: var(--chalk-yellow); font-weight: 700;
+  }
+  .day-tab.is-today::after{
+    content: ''; position: absolute; top: -4px; right: -4px;
+    width: 6px; height: 6px; border-radius: 50%; background: var(--chalk-coral);
+  }
+  .day-tab.active.is-today::after{ background: var(--chalk-board-dark); }
+  .day-tab.is-holiday{ opacity: 0.4; }
+  .day-tab.has-test:not(.active){ border-color: var(--chalk-coral); }
+
+  .schedule{ border-top: 1px solid var(--chalk-teal-line); }
+  .period{
+    display:grid; grid-template-columns: 88px 1fr auto; gap: 16px;
+    align-items: center; padding: 16px 6px;
+    border-bottom: 1px solid var(--chalk-teal-line); transition: background 0.25s ease;
+  }
+  .period.is-now{
+    background: rgba(231,184,79,0.08); border-left: 3px solid var(--chalk-yellow);
+    padding-left: 15px; margin-left: -3px;
+  }
+  .period.is-test{ background: rgba(226,114,91,0.06); }
+  .period-time{
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    color: var(--chalk-dim); white-space: nowrap;
+  }
+  .period.is-now .period-time{ color: var(--chalk-yellow); }
+  .period-name{ font-size: 19px; font-weight: 600; }
+  .period-meta{
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: var(--chalk-dim); margin-top: 2px;
+  }
+  .period-tag{
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 4px 9px; border-radius: 20px; white-space: nowrap;
+  }
+  .period-tag.test{ background: rgba(226,114,91,0.15); color: var(--chalk-coral); }
+  .period-tag.now{ background: rgba(231,184,79,0.15); color: var(--chalk-yellow); }
+
+  .empty{
+    padding: 32px 6px; color: var(--chalk-dim);
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  }
+
+  .sub-banner{
+    margin-top: 16px; padding: 12px 14px; border: 1px dashed var(--chalk-coral);
+    border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: var(--chalk-coral);
+  }
+
+  .data-status{
+    margin-top: 44px; border-top: 1px solid var(--chalk-teal-line); padding-top: 16px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--chalk-dim);
+    display:flex; align-items:center; justify-content:space-between; gap: 10px; flex-wrap:wrap;
+  }
+  .data-status.err{ color: var(--chalk-coral); }
+  .data-status button{
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; background: transparent;
+    color: var(--chalk-cream); border: 1px solid var(--chalk-teal-line); padding: 7px 12px;
+    border-radius: 4px; cursor:pointer;
+  }
+  .data-status button:hover{ border-color: var(--chalk-yellow); color: var(--chalk-yellow); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top-nav">
+    <div class="links">
+      <a href="index.html" class="active">Home</a>
+      <a href="upcoming.html">Upcoming</a>
+      <a href="month.html">Month</a>
+    </div>
+  </div>
+
+  <div class="eyebrow">Class schedule</div>
+  <h1 class="today-date" id="dateTitle">—</h1>
+  <div class="subline" id="statusLine">Loading…</div>
+
+  <div class="week-nav">
+    <button id="prevWeekBtn">← Prev week</button>
+    <button id="todayBtn">This week</button>
+    <button id="nextWeekBtn">Next week →</button>
+  </div>
+  <div class="day-tabs" id="dayTabs"></div>
+
+  <div class="schedule" id="schedule"></div>
+  <div id="subBanner"></div>
+
+  <div class="data-status" id="dataStatus">
+    <span id="dataStatusText">Loading class-data.xlsx…</span>
+    <button id="refreshBtn">↻ Refresh</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const XLSX_PATH = './class-data.xlsx';
+  const STORAGE_CACHE = 'todays-class:data-cache-v2';
+  const TEST_PATTERN = /test|exam|sed|quiz|viva/i;
+  const DOW = ['S','M','T','W','T','F','S'];
+
+  let classRows = [];
+  let subRows = [];
+  let selectedDate = new Date();
+  let weekStart = null;
+
+  const el = {
+    dateTitle: document.getElementById('dateTitle'),
+    statusLine: document.getElementById('statusLine'),
+    dayTabs: document.getElementById('dayTabs'),
+    schedule: document.getElementById('schedule'),
+    subBanner: document.getElementById('subBanner'),
+    prevWeekBtn: document.getElementById('prevWeekBtn'),
+    nextWeekBtn: document.getElementById('nextWeekBtn'),
+    todayBtn: document.getElementById('todayBtn'),
+    dataStatus: document.getElementById('dataStatus'),
+    dataStatusText: document.getElementById('dataStatusText'),
+    refreshBtn: document.getElementById('refreshBtn'),
+  };
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function startOfDay(d){ const c = new Date(d); c.setHours(0,0,0,0); return c; }
+  function sameDay(a,b){ return startOfDay(a).getTime() === startOfDay(b).getTime(); }
+  function fmtTime(h,m){
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    let h12 = h % 12; if (h12 === 0) h12 = 12;
+    return `${h12}:${pad(m)} ${ampm}`;
+  }
+  function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+  function excelDateToJS(v){
+    if (v instanceof Date) return v;
+    if (typeof v === 'number'){
+      const parsed = XLSX.SSF.parse_date_code(v);
+      if (parsed) return new Date(parsed.y, parsed.m - 1, parsed.d);
+    }
+    if (typeof v === 'string'){
+      const d = new Date(v);
+      if (!isNaN(d)) return d;
+    }
+    return null;
+  }
+
+  // Handles "8:45 - 10:15" / "1:15 - 2:45" style ranges where afternoon
+  // hours are written without AM/PM (school-day heuristic: 1-7 => PM).
+  function parseTimeToken(tok){
+    let [h,m] = tok.trim().split(':').map(Number);
+    if (h >= 1 && h <= 7) h += 12;
+    return { h, m: m || 0 };
+  }
+  function parseTimeRange(raw){
+    const parts = String(raw || '').split('-').map(s => s.trim());
+    if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
+    const s = parseTimeToken(parts[0]);
+    const e = parseTimeToken(parts[1]);
+    return {
+      startMin: s.h * 60 + s.m,
+      endMin: e.h * 60 + e.m,
+      label: `${fmtTime(s.h, s.m)}<br>${fmtTime(e.h, e.m)}`
+    };
+  }
+
+  function findSheet(workbook, keyword){
+    const name = workbook.SheetNames.find(n => n.toLowerCase().includes(keyword));
+    return name ? workbook.Sheets[name] : null;
+  }
+
+  function parseWorkbook(workbook){
+    const rows1 = [];
+    const ttSheet = findSheet(workbook, 'time') || workbook.Sheets[workbook.SheetNames[0]];
+    if (ttSheet){
+      XLSX.utils.sheet_to_json(ttSheet, { defval: '' }).forEach(r => {
+        const date = excelDateToJS(r['Date']);
+        if (!date) return;
+        const course = String(r['Course'] ?? '').trim();
+        if (!course || course === '--') return;
+        const tr = parseTimeRange(r['Time']);
+        rows1.push({
+          date, course,
+          faculty: String(r['Faculty'] ?? '').trim(),
+          hall: r['Hall No.'] !== undefined ? String(r['Hall No.']).trim() : '',
+          timeLabel: tr ? tr.label : String(r['Time'] ?? ''),
+          startMin: tr ? tr.startMin : null,
+          endMin: tr ? tr.endMin : null,
+          isTest: TEST_PATTERN.test(course)
+        });
+      });
+    }
+    const rows2 = [];
+    const subSheet = findSheet(workbook, 'submission');
+    if (subSheet){
+      XLSX.utils.sheet_to_json(subSheet, { defval: '' }).forEach(r => {
+        const date = excelDateToJS(r['Date']);
+        if (!date) return;
+        const aKey = Object.keys(r).find(k => k.toLowerCase().includes('assignment'));
+        rows2.push({
+          date,
+          course: String(r['Course'] ?? '').trim(),
+          faculty: String(r['Faculty'] ?? '').trim(),
+          assignment: aKey ? String(r[aKey] ?? '').trim() : ''
+        });
+      });
+    }
+    return { classRows: rows1, subRows: rows2 };
+  }
+
+  async function cacheData(data){
+    try{
+      await window.storage.set(STORAGE_CACHE, JSON.stringify({
+        classRows: data.classRows.map(r => ({...r, date: r.date.toISOString()})),
+        subRows: data.subRows.map(r => ({...r, date: r.date.toISOString()}))
+      }), false);
+    } catch(err){ /* non-fatal */ }
+  }
+  async function loadCachedData(){
+    try{
+      const res = await window.storage.get(STORAGE_CACHE, false);
+      if (!res || !res.value) return null;
+      const parsed = JSON.parse(res.value);
+      return {
+        classRows: parsed.classRows.map(r => ({...r, date: new Date(r.date)})),
+        subRows: parsed.subRows.map(r => ({...r, date: new Date(r.date)}))
+      };
+    } catch(err){ return null; }
+  }
+
+  async function loadData(showStatus){
+    if (showStatus) { el.dataStatusText.textContent = 'Fetching class-data.xlsx…'; el.dataStatus.className = 'data-status'; }
+    try{
+      const resp = await fetch(XLSX_PATH, { cache: 'no-store' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const buf = await resp.arrayBuffer();
+      const workbook = XLSX.read(buf, { type: 'array', cellDates: false });
+      const data = parseWorkbook(workbook);
+      classRows = data.classRows;
+      subRows = data.subRows;
+      await cacheData(data);
+      el.dataStatusText.textContent = `Loaded ${classRows.length} periods, ${subRows.length} submissions — ${new Date().toLocaleTimeString()}`;
+      el.dataStatus.className = 'data-status';
+      return true;
+    } catch(err){
+      const cached = await loadCachedData();
+      if (cached){
+        classRows = cached.classRows;
+        subRows = cached.subRows;
+        el.dataStatusText.textContent = `Couldn't reach class-data.xlsx — showing last saved copy.`;
+        el.dataStatus.className = 'data-status err';
+        return true;
+      }
+      el.dataStatusText.textContent = `Couldn't load class-data.xlsx. Make sure it sits in the same folder as this page.`;
+      el.dataStatus.className = 'data-status err';
+      return false;
+    }
+  }
+
+  function getWeekStart(d){
+    const c = startOfDay(d);
+    c.setDate(c.getDate() - c.getDay());
+    return c;
+  }
+
+  function renderHeader(){
+    el.dateTitle.textContent = selectedDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    const now = new Date();
+    if (sameDay(selectedDate, now)){
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      const todays = classRows.filter(r => sameDay(r.date, selectedDate));
+      const current = todays.find(r => r.startMin !== null && nowMin >= r.startMin && nowMin < r.endMin);
+      const next = todays.filter(r => r.startMin !== null && r.startMin > nowMin).sort((a,b)=>a.startMin-b.startMin)[0];
+      if (current){
+        el.statusLine.innerHTML = `<span class="now-badge">Now:</span> ${escapeHtml(current.course)}`;
+      } else if (next){
+        el.statusLine.innerHTML = `Next up: ${escapeHtml(next.course)}`;
+      } else if (todays.length === 0){
+        el.statusLine.textContent = 'No classes today.';
+      } else {
+        el.statusLine.textContent = 'Classes done for today.';
+      }
+    } else {
+      el.statusLine.textContent = selectedDate.toLocaleDateString(undefined, { year: 'numeric' });
+    }
+  }
+
+  function renderDayTabs(){
+    weekStart = getWeekStart(selectedDate);
+    const today = new Date();
+    let html = '';
+    for (let i = 0; i < 7; i++){
+      const d = new Date(weekStart); d.setDate(d.getDate() + i);
+      const dayRows = classRows.filter(r => sameDay(r.date, d));
+      const hasClass = dayRows.length > 0;
+      const hasTest = dayRows.some(r => r.isTest);
+      const isToday = sameDay(d, today);
+      const isSelected = sameDay(d, selectedDate);
+      const classes = ['day-tab'];
+      if (isSelected) classes.push('active');
+      if (isToday) classes.push('is-today');
+      if (!hasClass) classes.push('is-holiday');
+      if (hasTest) classes.push('has-test');
+      html += `<button class="${classes.join(' ')}" data-date="${d.toISOString()}">${DOW[i]}<span class="dn">${d.getDate()}</span></button>`;
+    }
+    el.dayTabs.innerHTML = html;
+    el.dayTabs.querySelectorAll('.day-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedDate = new Date(btn.dataset.date);
+        renderAll();
+      });
+    });
+  }
+
+  function renderSchedule(){
+    const now = new Date();
+    const periods = classRows.filter(r => sameDay(r.date, selectedDate)).sort((a,b) => (a.startMin||0) - (b.startMin||0));
+    if (periods.length === 0){
+      el.schedule.innerHTML = '<div class="empty">No classes scheduled — holiday.</div>';
+    } else {
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      el.schedule.innerHTML = periods.map(p => {
+        const isNow = sameDay(selectedDate, now) && p.startMin !== null && nowMin >= p.startMin && nowMin < p.endMin;
+        const cls = ['period'];
+        if (isNow) cls.push('is-now');
+        if (p.isTest) cls.push('is-test');
+        const tag = isNow ? '<span class="period-tag now">Now</span>' : (p.isTest ? '<span class="period-tag test">Test</span>' : '');
+        return `
+          <div class="${cls.join(' ')}">
+            <div class="period-time">${p.timeLabel}</div>
+            <div>
+              <div class="period-name">${escapeHtml(p.course)}</div>
+              <div class="period-meta">${escapeHtml([p.faculty, p.hall ? 'Hall ' + p.hall : ''].filter(Boolean).join(' · '))}</div>
+            </div>
+            <div>${tag}</div>
+          </div>`;
+      }).join('');
+    }
+
+    const subsToday = subRows.filter(r => sameDay(r.date, selectedDate));
+    el.subBanner.innerHTML = subsToday.map(s =>
+      `<div class="sub-banner">Due today: ${escapeHtml(s.assignment || 'Submission')}${s.course ? ' — ' + escapeHtml(s.course) : ''}</div>`
+    ).join('');
+  }
+
+  function renderAll(){
+    renderHeader();
+    renderDayTabs();
+    renderSchedule();
+  }
+
+  el.prevWeekBtn.addEventListener('click', () => {
+    selectedDate = new Date(selectedDate); selectedDate.setDate(selectedDate.getDate() - 7);
+    renderAll();
+  });
+  el.nextWeekBtn.addEventListener('click', () => {
+    selectedDate = new Date(selectedDate); selectedDate.setDate(selectedDate.getDate() + 7);
+    renderAll();
+  });
+  el.todayBtn.addEventListener('click', () => {
+    selectedDate = new Date();
+    renderAll();
+  });
+  el.refreshBtn.addEventListener('click', async () => {
+    await loadData(true);
+    renderAll();
+  });
+
+  async function init(){
+    const params = new URLSearchParams(window.location.search);
+    const dateParam = params.get('date');
+    if (dateParam){
+      const d = new Date(dateParam);
+      if (!isNaN(d)) selectedDate = d;
+    }
+    const cached = await loadCachedData();
+    if (cached){ classRows = cached.classRows; subRows = cached.subRows; renderAll(); }
+    await loadData(false);
+    renderAll();
+    setInterval(() => { renderHeader(); renderSchedule(); }, 30000);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
