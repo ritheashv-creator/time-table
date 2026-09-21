@@ -52,9 +52,32 @@
   }
   .page-title .underline{ position:absolute; left: -2px; right: -2px; bottom: -6px; height: 8px; }
   .page-title .underline svg{ width:100%; height:100%; display:block; }
+  .page-header-row{
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  .header-actions{
+    margin-top: 14px;
+  }
+  .cal-btn-bulk{
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.05em;
+    text-transform: uppercase; background: rgba(231,184,79,0.08); color: var(--chalk-yellow);
+    border: 1px solid var(--chalk-yellow); padding: 9px 14px; border-radius: 4px;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+    transition: all 0.2s; font-weight: 500;
+  }
+  .cal-btn-bulk:hover{
+    background: var(--chalk-yellow); color: var(--chalk-board-dark);
+  }
+  .cal-btn-bulk svg{ width: 14px; height: 14px; display: block; }
+
   .subline{
     font-family: 'JetBrains Mono', monospace; font-size: 13px;
-    color: var(--chalk-dim); margin-top: 18px; margin-bottom: 32px;
+    color: var(--chalk-dim); margin-top: 14px; margin-bottom: 0;
   }
 
   .section-title{
@@ -68,7 +91,7 @@
 
   .event-card{
     display:grid; grid-template-columns: 64px 1fr auto; gap: 16px;
-    align-items:center; padding: 16px 14px; margin-bottom: 8px;
+    align-items:center; padding: 16px 14px; margin-bottom: 10px;
     border: 1px solid var(--chalk-teal-line); border-radius: 8px;
     background: rgba(255,255,255,0.015); transition: border-color 0.2s;
   }
@@ -85,6 +108,18 @@
   .event-body .event-meta{
     font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--chalk-dim);
   }
+
+  .event-right{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .event-tag-wrap{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
   .event-tag{
     font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.06em;
     text-transform: uppercase; padding: 4px 9px; border-radius: 20px; white-space: nowrap;
@@ -94,14 +129,60 @@
   .event-tag.submission{ background: rgba(226,114,91,0.15); color: var(--chalk-coral); }
   .event-countdown{
     font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--chalk-dim);
-    text-align:center; margin-top: 4px;
+    text-align:right; white-space: nowrap;
   }
   .event-card.is-urgent .event-countdown{ color: var(--chalk-coral); }
+
+  .event-cal-actions{
+    display: flex;
+    gap: 5px;
+  }
+  .cal-action-btn{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.03em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--chalk-teal-line);
+    background: rgba(255,255,255,0.02);
+    color: var(--chalk-dim);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    line-height: 1.4;
+  }
+  .cal-action-btn svg{ width: 11px; height: 11px; display: block; }
+  .cal-action-btn:hover{
+    border-color: var(--chalk-yellow);
+    color: var(--chalk-yellow);
+    background: rgba(231,184,79,0.08);
+  }
+  .cal-action-btn.gcal:hover{
+    border-color: #60a5fa;
+    color: #93c5fd;
+    background: rgba(96,165,250,0.1);
+  }
 
   .empty{
     padding: 28px 14px; color: var(--chalk-dim);
     font-family: 'JetBrains Mono', monospace; font-size: 13px;
     border: 1px dashed var(--chalk-teal-line); border-radius: 8px; text-align:center;
+  }
+
+  .toast{
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--chalk-yellow); color: var(--chalk-board-dark);
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600;
+    padding: 10px 18px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1000;
+  }
+  .toast.show{
+    opacity: 1; transform: translateX(-50%) translateY(0);
   }
 
   .data-status{
@@ -117,11 +198,15 @@
   }
   .data-status button:hover{ border-color: var(--chalk-yellow); color: var(--chalk-yellow); }
 
-  @media (max-width: 480px){
+  @media (max-width: 540px){
     .wrap{ padding: 28px 16px 56px; }
     .top-nav{ gap: 6px; }
     .top-nav a{ padding: 8px 10px; font-size: 11px; }
-    .event-card{ grid-template-columns: 48px 1fr auto; gap: 10px; padding: 14px 10px; }
+    .page-header-row{ flex-direction: column; gap: 12px; }
+    .header-actions{ margin-top: 0; width: 100%; }
+    .cal-btn-bulk{ width: 100%; justify-content: center; }
+    .event-card{ grid-template-columns: 48px 1fr; gap: 10px; padding: 14px 10px; }
+    .event-right{ grid-column: 1 / -1; flex-direction: row; justify-content: space-between; align-items: center; border-top: 1px dashed rgba(63,99,85,0.6); padding-top: 10px; margin-top: 4px; }
     .event-date .num{ font-size: 20px; }
     .event-body .event-name{ font-size: 16px; }
     .section-title{ font-size: 17px; }
@@ -139,12 +224,22 @@
     </div>
   </div>
 
-  <div class="eyebrow">Tests & assignments</div>
-  <h1 class="page-title">
-    <span>Coming up</span>
-    <span class="underline"><svg viewBox="0 0 300 8" preserveAspectRatio="none"><path d="M2,5 C60,2 120,7 180,3 C220,1 260,6 298,4" stroke="#e7b84f" stroke-width="3" fill="none" stroke-linecap="round"/></svg></span>
-  </h1>
-  <div class="subline" id="todayLine">—</div>
+  <div class="page-header-row">
+    <div>
+      <div class="eyebrow">Tests & assignments</div>
+      <h1 class="page-title">
+        <span>Coming up</span>
+        <span class="underline"><svg viewBox="0 0 300 8" preserveAspectRatio="none"><path d="M2,5 C60,2 120,7 180,3 C220,1 260,6 298,4" stroke="#e7b84f" stroke-width="3" fill="none" stroke-linecap="round"/></svg></span>
+      </h1>
+      <div class="subline" id="todayLine">—</div>
+    </div>
+    <div class="header-actions">
+      <button class="cal-btn-bulk" id="exportAllIcsBtn" title="Export all upcoming tests to an .ics calendar file">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        Export All (.ics)
+      </button>
+    </div>
+  </div>
 
   <div class="section-title">
     <span>Due soon</span>
@@ -170,6 +265,8 @@
   </div>
 </div>
 
+<div class="toast" id="toast">Calendar file downloaded!</div>
+
 <script>
 (function(){
   const XLSX_PATH = './class-data.xlsx';
@@ -183,6 +280,8 @@
 
   let classRows = [];
   let subRows = [];
+  let currentEvents = [];
+  let toastTimer = null;
 
   const el = {
     todayLine: document.getElementById('todayLine'),
@@ -195,10 +294,43 @@
     dataStatus: document.getElementById('dataStatus'),
     dataStatusText: document.getElementById('dataStatusText'),
     refreshBtn: document.getElementById('refreshBtn'),
+    exportAllIcsBtn: document.getElementById('exportAllIcsBtn'),
+    toast: document.getElementById('toast'),
   };
 
+  function pad(n){ return String(n).padStart(2,'0'); }
   function startOfDay(d){ const c = new Date(d); c.setHours(0,0,0,0); return c; }
+  function nextDay(d){ const c = new Date(d); c.setDate(c.getDate() + 1); return c; }
   function daysBetween(a, b){ return Math.round((startOfDay(b) - startOfDay(a)) / 86400000); }
+  function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+  function fmtTime(h, m){
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    let h12 = h % 12; if (h12 === 0) h12 = 12;
+    return `${h12}:${pad(m)} ${ampm}`;
+  }
+
+  function parseTimeToken(tok){
+    let [h, m] = tok.trim().split(':').map(Number);
+    if (h >= 1 && h <= 7) h += 12;
+    return { h, m: m || 0 };
+  }
+
+  function parseTimeRange(raw){
+    const parts = String(raw || '').split('-').map(s => s.trim());
+    if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
+    const s = parseTimeToken(parts[0]);
+    const e = parseTimeToken(parts[1]);
+    return {
+      startH: s.h,
+      startM: s.m,
+      endH: e.h,
+      endM: e.m,
+      startMin: s.h * 60 + s.m,
+      endMin: e.h * 60 + e.m,
+      label: `${fmtTime(s.h, s.m)} – ${fmtTime(e.h, e.m)}`
+    };
+  }
 
   function excelDateToJS(v){
     if (v instanceof Date) return v;
@@ -227,9 +359,14 @@
         if (!date) return;
         const course = String(r['Course'] ?? '').trim();
         if (!course || course === '--') return;
+        const tr = parseTimeRange(r['Time']);
         rows1.push({
-          date, course,
-          hall: r['Hall No.'] !== undefined ? String(r['Hall No.']).trim() : ''
+          date,
+          course,
+          faculty: String(r['Faculty'] ?? '').trim(),
+          hall: r['Hall No.'] !== undefined ? String(r['Hall No.']).trim() : '',
+          timeRange: tr,
+          timeLabel: tr ? tr.label : String(r['Time'] ?? '')
         });
       });
     }
@@ -252,23 +389,47 @@
   }
 
   async function cacheData(data){
-    try{
-      await window.storage.set(STORAGE_CACHE, JSON.stringify({
-        classRows: data.classRows.map(r => ({...r, date: r.date.toISOString()})),
-        subRows: data.subRows.map(r => ({...r, date: r.date.toISOString()}))
-      }), false);
-    } catch(err){ /* non-fatal */ }
+    const payload = JSON.stringify({
+      classRows: data.classRows.map(r => ({
+        ...r,
+        date: r.date.toISOString()
+      })),
+      subRows: data.subRows.map(r => ({
+        ...r,
+        date: r.date.toISOString()
+      }))
+    });
+    try { localStorage.setItem(STORAGE_CACHE, payload); } catch(e){}
+    try {
+      if (window.storage && typeof window.storage.set === 'function'){
+        await window.storage.set(STORAGE_CACHE, payload, false);
+      }
+    } catch(e){}
   }
+
   async function loadCachedData(){
-    try{
-      const res = await window.storage.get(STORAGE_CACHE, false);
-      if (!res || !res.value) return null;
-      const parsed = JSON.parse(res.value);
+    let raw = null;
+    try { raw = localStorage.getItem(STORAGE_CACHE); } catch(e){}
+    if (!raw){
+      try {
+        if (window.storage && typeof window.storage.get === 'function'){
+          const res = await window.storage.get(STORAGE_CACHE, false);
+          if (res && res.value) raw = res.value;
+        }
+      } catch(e){}
+    }
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
       return {
-        classRows: parsed.classRows.map(r => ({...r, date: new Date(r.date)})),
+        classRows: parsed.classRows.map(r => ({
+          ...r,
+          date: new Date(r.date),
+          timeRange: r.timeRange || (r.timeLabel ? parseTimeRange(r.timeLabel) : null)
+        })),
         subRows: parsed.subRows.map(r => ({...r, date: new Date(r.date)}))
       };
-    } catch(err){ return null; }
+    } catch(e){ return null; }
   }
 
   async function loadData(showStatus){
@@ -300,21 +461,168 @@
     }
   }
 
+  // --- Calendar Generator Helpers ---
+
+  function formatIcsDateTime(d, h, m){
+    const year = d.getFullYear();
+    const mon = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    const hours = pad(h || 0);
+    const mins = pad(m || 0);
+    return `${year}${mon}${day}T${hours}${mins}00`;
+  }
+
+  function formatIcsDateOnly(d){
+    return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+  }
+
+  function formatGcalDateTime(d, h, m){
+    return formatIcsDateTime(d, h, m);
+  }
+
+  function formatGcalDateOnly(d){
+    return formatIcsDateOnly(d);
+  }
+
+  function escapeIcsText(str){
+    return String(str || '')
+      .replace(/\\/g, '\\\\')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,')
+      .replace(/\r?\n/g, '\\n');
+  }
+
+  function generateIcsForEvents(events, calTitle){
+    const nowStamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//College Time Table//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      `X-WR-CALNAME:${escapeIcsText(calTitle || 'Upcoming Tests & Exams')}`
+    ];
+
+    events.forEach(e => {
+      const summary = `${e.title}${e.type === 'test' ? ' (Test)' : ' (Due)'}`;
+      const descParts = [];
+      if (e.type === 'test') descParts.push('Type: College Exam / Test');
+      if (e.type === 'submission') descParts.push('Type: Assignment Submission');
+      if (e.course && e.course !== e.title) descParts.push(`Course: ${e.course}`);
+      if (e.faculty) descParts.push(`Faculty: ${e.faculty}`);
+      if (e.hall) descParts.push(`Hall: ${e.hall}`);
+      if (e.timeRange && e.timeRange.label) descParts.push(`Time: ${e.timeRange.label}`);
+
+      const location = e.hall ? `Hall ${e.hall}` : '';
+
+      lines.push('BEGIN:VEVENT');
+      lines.push(`UID:${e.id || ('event-' + Math.random().toString(36).slice(2))}@college-timetable`);
+      lines.push(`DTSTAMP:${nowStamp}`);
+      if (e.timeRange){
+        lines.push(`DTSTART:${formatIcsDateTime(e.date, e.timeRange.startH, e.timeRange.startM)}`);
+        lines.push(`DTEND:${formatIcsDateTime(e.date, e.timeRange.endH, e.timeRange.endM)}`);
+      } else {
+        lines.push(`DTSTART;VALUE=DATE:${formatIcsDateOnly(e.date)}`);
+        lines.push(`DTEND;VALUE=DATE:${formatIcsDateOnly(nextDay(e.date))}`);
+      }
+      lines.push(`SUMMARY:${escapeIcsText(summary)}`);
+      if (descParts.length) lines.push(`DESCRIPTION:${escapeIcsText(descParts.join('\n'))}`);
+      if (location) lines.push(`LOCATION:${escapeIcsText(location)}`);
+      lines.push('STATUS:CONFIRMED');
+      lines.push('TRANSP:OPAQUE');
+      lines.push('END:VEVENT');
+    });
+
+    lines.push('END:VCALENDAR');
+    return lines.join('\r\n');
+  }
+
+  function downloadIcsFile(filename, content){
+    const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(`Downloaded ${filename}`);
+  }
+
+  function getGoogleCalendarUrl(e){
+    const title = `${e.title}${e.type === 'test' ? ' (Test)' : ' (Due)'}`;
+    let dates = '';
+    if (e.timeRange){
+      dates = `${formatGcalDateTime(e.date, e.timeRange.startH, e.timeRange.startM)}/${formatGcalDateTime(e.date, e.timeRange.endH, e.timeRange.endM)}`;
+    } else {
+      dates = `${formatGcalDateOnly(e.date)}/${formatGcalDateOnly(nextDay(e.date))}`;
+    }
+    const descParts = [];
+    if (e.type === 'test') descParts.push('Type: College Exam / Test');
+    if (e.type === 'submission') descParts.push('Type: Assignment Submission');
+    if (e.course && e.course !== e.title) descParts.push(`Course: ${e.course}`);
+    if (e.faculty) descParts.push(`Faculty: ${e.faculty}`);
+    if (e.hall) descParts.push(`Hall: ${e.hall}`);
+    if (e.timeRange && e.timeRange.label) descParts.push(`Time: ${e.timeRange.label}`);
+
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: title,
+      dates: dates,
+      details: descParts.join('\n'),
+      location: e.hall ? `Hall ${e.hall}` : ''
+    });
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  }
+
+  function showToast(msg){
+    el.toast.textContent = msg;
+    el.toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      el.toast.classList.remove('show');
+    }, 2800);
+  }
+
   function buildEvents(){
     const testMap = new Map();
     classRows.forEach(r => {
       if (!TEST_PATTERN.test(r.course)) return;
       const key = startOfDay(r.date).getTime() + '|' + r.course;
       if (!testMap.has(key)){
-        testMap.set(key, { date: r.date, title: r.course, type: 'test', meta: r.hall ? `Hall ${r.hall}` : '' });
+        const safeId = 'test-' + startOfDay(r.date).getTime() + '-' + r.course.replace(/\W+/g, '-').toLowerCase();
+        const metaParts = [r.faculty, r.hall ? `Hall ${r.hall}` : '', r.timeLabel].filter(Boolean);
+        testMap.set(key, {
+          id: safeId,
+          date: r.date,
+          title: r.course,
+          course: r.course,
+          type: 'test',
+          hall: r.hall,
+          faculty: r.faculty,
+          meta: metaParts.join(' · '),
+          timeRange: r.timeRange
+        });
       }
     });
-    const submissionEvents = subRows.map(r => ({
-      date: r.date,
-      title: r.assignment ? r.assignment : (r.course || 'Submission'),
-      type: 'submission',
-      meta: [r.course, r.faculty].filter(Boolean).join(' · ')
-    }));
+
+    const submissionEvents = subRows.map(r => {
+      const safeId = 'sub-' + startOfDay(r.date).getTime() + '-' + (r.assignment || r.course).replace(/\W+/g, '-').toLowerCase();
+      const metaParts = [r.course, r.faculty].filter(Boolean);
+      return {
+        id: safeId,
+        date: r.date,
+        title: r.assignment ? r.assignment : (r.course || 'Submission'),
+        course: r.course,
+        faculty: r.faculty,
+        type: 'submission',
+        hall: '',
+        meta: metaParts.join(' · '),
+        timeRange: null
+      };
+    });
+
     const all = [...testMap.values(), ...submissionEvents];
     all.sort((a,b) => a.date - b.date);
     return all;
@@ -328,8 +636,6 @@
     return `${Math.abs(days)} days ago`;
   }
 
-  function escapeHtml(str){ const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
-
   function renderCard(evt, today){
     const days = daysBetween(today, evt.date);
     const urgent = days >= 0 && days <= 2;
@@ -337,19 +643,46 @@
     const day = evt.date.getDate();
     const mon = MONTHS[evt.date.getMonth()];
     const tagLabel = evt.type === 'test' ? 'Test' : 'Submission';
+    const gcalUrl = getGoogleCalendarUrl(evt);
+
     const div = document.createElement('div');
     div.className = 'event-card' + (urgent ? ' is-urgent' : '') + (isPast ? ' is-past' : '');
     div.innerHTML = `
-      <div class="event-date"><div class="num">${day}</div><div class="mon">${mon}</div></div>
+      <div class="event-date">
+        <div class="num">${day}</div>
+        <div class="mon">${mon}</div>
+      </div>
       <div class="event-body">
         <div class="event-name">${escapeHtml(evt.title)}</div>
         <div class="event-meta">${escapeHtml(evt.meta || '')}</div>
       </div>
-      <div>
-        <div class="event-tag ${evt.type}">${tagLabel}</div>
-        <div class="event-countdown">${countdownLabel(days)}</div>
+      <div class="event-right">
+        <div class="event-tag-wrap">
+          <div class="event-tag ${evt.type}">${tagLabel}</div>
+          <div class="event-countdown">${countdownLabel(days)}</div>
+        </div>
+        <div class="event-cal-actions">
+          <a href="${gcalUrl}" target="_blank" rel="noopener noreferrer" class="cal-action-btn gcal" title="Add directly to Google Calendar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            + GCal
+          </a>
+          <button type="button" class="cal-action-btn ics" data-id="${evt.id}" title="Download .ics for Apple Calendar / Outlook">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            .ics
+          </button>
+        </div>
       </div>
     `;
+
+    const icsBtn = div.querySelector('.cal-action-btn.ics');
+    if (icsBtn){
+      icsBtn.addEventListener('click', () => {
+        const safeName = (evt.title || 'event').replace(/\W+/g, '-').toLowerCase();
+        const content = generateIcsForEvents([evt], evt.title);
+        downloadIcsFile(`${safeName}.ics`, content);
+      });
+    }
+
     return div;
   }
 
@@ -357,10 +690,10 @@
     const today = startOfDay(new Date());
     el.todayLine.textContent = new Date().toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric', year:'numeric' });
 
-    const events = buildEvents();
-    const soon = events.filter(e => { const d = daysBetween(today, e.date); return d >= 0 && d <= DAYS_BEFORE; });
-    const past = events.filter(e => { const d = daysBetween(today, e.date); return d < 0 && d >= -DAYS_AFTER; });
-    const later = events.filter(e => daysBetween(today, e.date) > DAYS_BEFORE);
+    currentEvents = buildEvents();
+    const soon = currentEvents.filter(e => { const d = daysBetween(today, e.date); return d >= 0 && d <= DAYS_BEFORE; });
+    const past = currentEvents.filter(e => { const d = daysBetween(today, e.date); return d < 0 && d >= -DAYS_AFTER; });
+    const later = currentEvents.filter(e => daysBetween(today, e.date) > DAYS_BEFORE);
 
     el.soonCount.textContent = soon.length;
     el.pastCount.textContent = past.length;
@@ -378,6 +711,19 @@
     if (later.length === 0) el.laterList.innerHTML = '<div class="empty">Nothing else on the horizon yet.</div>';
     else later.forEach(evt => el.laterList.appendChild(renderCard(evt, today)));
   }
+
+  el.exportAllIcsBtn.addEventListener('click', () => {
+    const today = startOfDay(new Date());
+    // Export upcoming tests and submissions from today onwards (or all tests if none upcoming)
+    let targets = currentEvents.filter(e => daysBetween(today, e.date) >= 0);
+    if (targets.length === 0) targets = currentEvents;
+    if (targets.length === 0){
+      showToast('No upcoming tests found to export.');
+      return;
+    }
+    const content = generateIcsForEvents(targets, 'College Schedule — Tests & Assignments');
+    downloadIcsFile('college-schedule-exams.ics', content);
+  });
 
   el.refreshBtn.addEventListener('click', async () => {
     await loadData(true);

@@ -316,23 +316,36 @@
   }
 
   async function cacheData(data){
-    try{
-      await window.storage.set(STORAGE_CACHE, JSON.stringify({
-        classRows: data.classRows.map(r => ({...r, date: r.date.toISOString()})),
-        subRows: data.subRows.map(r => ({...r, date: r.date.toISOString()}))
-      }), false);
-    } catch(err){ /* non-fatal */ }
+    const payload = JSON.stringify({
+      classRows: data.classRows.map(r => ({...r, date: r.date.toISOString()})),
+      subRows: data.subRows.map(r => ({...r, date: r.date.toISOString()}))
+    });
+    try { localStorage.setItem(STORAGE_CACHE, payload); } catch(e){}
+    try {
+      if (window.storage && typeof window.storage.set === 'function'){
+        await window.storage.set(STORAGE_CACHE, payload, false);
+      }
+    } catch(e){}
   }
   async function loadCachedData(){
-    try{
-      const res = await window.storage.get(STORAGE_CACHE, false);
-      if (!res || !res.value) return null;
-      const parsed = JSON.parse(res.value);
+    let raw = null;
+    try { raw = localStorage.getItem(STORAGE_CACHE); } catch(e){}
+    if (!raw){
+      try {
+        if (window.storage && typeof window.storage.get === 'function'){
+          const res = await window.storage.get(STORAGE_CACHE, false);
+          if (res && res.value) raw = res.value;
+        }
+      } catch(e){}
+    }
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
       return {
         classRows: parsed.classRows.map(r => ({...r, date: new Date(r.date)})),
         subRows: parsed.subRows.map(r => ({...r, date: new Date(r.date)}))
       };
-    } catch(err){ return null; }
+    } catch(e){ return null; }
   }
 
   async function loadData(showStatus){
