@@ -109,6 +109,10 @@
     font-family: 'JetBrains Mono', monospace; font-size: 12px;
     color: var(--chalk-dim); margin-top: 2px;
   }
+  .period-staff{ color: var(--chalk-cream); font-weight: 500; }
+  .period-staff[title]{ cursor: help; border-bottom: 1px dotted rgba(242,237,225,0.4); }
+  .period-code{ color: var(--chalk-dim); opacity: 0.85; font-size: 11px; }
+  .status-staff{ opacity: 0.85; font-size: 12px; font-weight: normal; }
   .period-tag{
     font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.06em;
     text-transform: uppercase; padding: 4px 9px; border-radius: 20px; white-space: nowrap;
@@ -187,7 +191,7 @@
 <script>
 (function(){
   const XLSX_PATH = './class-data.xlsx';
-  const STORAGE_CACHE = 'todays-class:data-cache-v2';
+  const STORAGE_CACHE = 'todays-class:data-cache-v3';
   const TEST_PATTERN = /test|exam|sed|quiz|viva/i;
   const DOW = ['S','M','T','W','T','F','S'];
 
@@ -258,6 +262,62 @@
   }
 
   function parseWorkbook(workbook){
+    // 1. Build staff directory map
+    const staffMap = {};
+    const staffSheet = findSheet(workbook, 'staff') || findSheet(workbook, 'faculty');
+    if (staffSheet){
+      XLSX.utils.sheet_to_json(staffSheet, { defval: '' }).forEach(r => {
+        const legendKey = Object.keys(r).find(k => /^(legend|code|initials?|abbr|short|faculty)/i.test(k.trim())) || 'Legend';
+        const nameKey = Object.keys(r).find(k => /^(name|staff\s*name|faculty\s*name)/i.test(k.trim())) || 'Name';
+        const titleKey = Object.keys(r).find(k => /^(title|salutation|prefix)/i.test(k.trim())) || 'Title';
+        const areaKey = Object.keys(r).find(k => /^(area|department|dept)/i.test(k.trim())) || 'Area';
+
+        const legend = String(r[legendKey] ?? '').trim();
+        const title = String(r[titleKey] ?? '').trim();
+        const name = String(r[nameKey] ?? '').trim();
+        const area = String(r[areaKey] ?? '').trim();
+
+        if (legend){
+          const fullName = [title, name].filter(Boolean).join(' ').trim() || name || legend;
+          const entry = { legend, title, name, fullName, area };
+          staffMap[legend.toUpperCase()] = entry;
+          const normLegend = legend.replace(/[\s.-]/g, '').toUpperCase();
+          if (normLegend && normLegend !== legend.toUpperCase()){
+            staffMap[normLegend] = entry;
+          }
+        }
+      });
+    }
+
+    function resolveStaff(r){
+      // Check for explicit staff column in the row (e.g. 'staf ', 'staff', 'Staff Name', etc.)
+      const staffKey = Object.keys(r).find(k => /^staf/i.test(k.trim()) || /^staff\s*name/i.test(k.trim()) || /^faculty\s*name/i.test(k.trim()));
+      const explicitStaff = staffKey ? String(r[staffKey] ?? '').trim() : '';
+
+      const faculty = String(r['Faculty'] ?? '').trim();
+      let staffName = '';
+      let staffArea = '';
+
+      if (explicitStaff){
+        staffName = explicitStaff;
+        const lookup = staffMap[explicitStaff.toUpperCase()] || staffMap[explicitStaff.replace(/[\s.-]/g, '').toUpperCase()];
+        if (lookup){
+          staffName = lookup.fullName;
+          staffArea = lookup.area;
+        }
+      }
+
+      if (!staffName && faculty){
+        const lookup = staffMap[faculty.toUpperCase()] || staffMap[faculty.replace(/[\s.-]/g, '').toUpperCase()];
+        if (lookup){
+          staffName = lookup.fullName;
+          staffArea = lookup.area;
+        }
+      }
+
+      return { faculty, staffName, staffArea };
+    }
+
     const rows1 = [];
     const ttSheet = findSheet(workbook, 'time') || workbook.Sheets[workbook.SheetNames[0]];
     if (ttSheet){
@@ -267,9 +327,12 @@
         const course = String(r['Course'] ?? '').trim();
         if (!course || course === '--') return;
         const tr = parseTimeRange(r['Time']);
+        const { faculty, staffName, staffArea } = resolveStaff(r);
         rows1.push({
           date, course,
-          faculty: String(r['Faculty'] ?? '').trim(),
+          faculty,
+          staffName,
+          staffArea,
           hall: r['Hall No.'] !== undefined ? String(r['Hall No.']).trim() : '',
           timeLabel: tr ? tr.label : String(r['Time'] ?? ''),
           startMin: tr ? tr.startMin : null,
@@ -285,15 +348,18 @@
         const date = excelDateToJS(r['Date']);
         if (!date) return;
         const aKey = Object.keys(r).find(k => k.toLowerCase().includes('assignment'));
+        const { faculty, staffName, staffArea } = resolveStaff(r);
         rows2.push({
           date,
           course: String(r['Course'] ?? '').trim(),
-          faculty: String(r['Faculty'] ?? '').trim(),
+          faculty,
+          staffName,
+          staffArea,
           assignment: aKey ? String(r[aKey] ?? '').trim() : ''
         });
       });
     }
-    return { classRows: rows1, subRows: rows2 };
+    return { classRows: rows1, subRows: rows2, staffCount: Object.keys(staffMap).length };
   }
 
   async function cacheData(data){
@@ -340,7 +406,8 @@
       classRows = data.classRows;
       subRows = data.subRows;
       await cacheData(data);
-      el.dataStatusText.textContent = `Loaded ${classRows.length} periods, ${subRows.length} submissions — ${new Date().toLocaleTimeString()}`;
+      const staffInfo = data.staffCount ? `, ${data.staffCount} staff` : '';
+      el.dataStatusText.textContent = `Loaded ${classRows.length} periods, ${subRows.length} submissions${staffInfo} — ${new Date().toLocaleTimeString()}`;
       el.dataStatus.className = 'data-status';
       return true;
     } catch(err){
@@ -372,10 +439,12 @@
       const todays = classRows.filter(r => sameDay(r.date, selectedDate));
       const current = todays.find(r => r.startMin !== null && nowMin >= r.startMin && nowMin < r.endMin);
       const next = todays.filter(r => r.startMin !== null && r.startMin > nowMin).sort((a,b)=>a.startMin-b.startMin)[0];
+      const currentStaff = current ? (current.staffName || current.faculty) : '';
+      const nextStaff = next ? (next.staffName || next.faculty) : '';
       if (current){
-        el.statusLine.innerHTML = `<span class="now-badge">Now:</span> ${escapeHtml(current.course)}`;
+        el.statusLine.innerHTML = `<span class="now-badge">Now:</span> ${escapeHtml(current.course)}${currentStaff ? ` <span class="status-staff">(${escapeHtml(currentStaff)})</span>` : ''}`;
       } else if (next){
-        el.statusLine.innerHTML = `Next up: ${escapeHtml(next.course)}`;
+        el.statusLine.innerHTML = `Next up: ${escapeHtml(next.course)}${nextStaff ? ` <span class="status-staff">(${escapeHtml(nextStaff)})</span>` : ''}`;
       } else if (todays.length === 0){
         el.statusLine.textContent = 'No classes today.';
       } else {
@@ -426,12 +495,25 @@
         if (isNow) cls.push('is-now');
         if (p.isTest) cls.push('is-test');
         const tag = isNow ? '<span class="period-tag now">Now</span>' : (p.isTest ? '<span class="period-tag test">Test</span>' : '');
+
+        let staffHtml = '';
+        if (p.staffName){
+          const codeBadge = (p.faculty && p.faculty !== p.staffName) ? ` <span class="period-code">(${escapeHtml(p.faculty)})</span>` : '';
+          const areaTitle = p.staffArea ? ` title="${escapeHtml(p.staffArea)}"` : '';
+          staffHtml = `<span class="period-staff"${areaTitle}>${escapeHtml(p.staffName)}</span>${codeBadge}`;
+        } else if (p.faculty){
+          staffHtml = `<span class="period-code">${escapeHtml(p.faculty)}</span>`;
+        }
+
         return `
           <div class="${cls.join(' ')}">
             <div class="period-time">${p.timeLabel}</div>
             <div>
               <div class="period-name">${escapeHtml(p.course)}</div>
-              <div class="period-meta">${escapeHtml([p.faculty, p.hall ? 'Hall ' + p.hall : ''].filter(Boolean).join(' · '))}</div>
+              <div class="period-meta">
+                ${staffHtml}
+                ${p.hall ? `<span>${staffHtml ? ' · ' : ''}Hall ${escapeHtml(p.hall)}</span>` : ''}
+              </div>
             </div>
             <div>${tag}</div>
           </div>`;
@@ -439,9 +521,13 @@
     }
 
     const subsToday = subRows.filter(r => sameDay(r.date, selectedDate));
-    el.subBanner.innerHTML = subsToday.map(s =>
-      `<div class="sub-banner">Due today: ${escapeHtml(s.assignment || 'Submission')}${s.course ? ' — ' + escapeHtml(s.course) : ''}</div>`
-    ).join('');
+    el.subBanner.innerHTML = subsToday.map(s => {
+      const sFaculty = s.staffName
+        ? (s.faculty && s.faculty !== s.staffName ? `${s.staffName} (${s.faculty})` : s.staffName)
+        : s.faculty;
+      const details = [s.course, sFaculty].filter(Boolean).join(' · ');
+      return `<div class="sub-banner">Due today: ${escapeHtml(s.assignment || 'Submission')}${details ? ' — ' + escapeHtml(details) : ''}</div>`;
+    }).join('');
   }
 
   function renderAll(){
